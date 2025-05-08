@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Game - Angielski i Polski</title>
+  <style>
+    body {
+      font-family: Comic Sans MS, cursive, sans-serif;
+      text-align: center;
+      background-color: #ffe4b5;
+    }
+    h1 {
+      margin-top: 20px;
+      color: #ff6347;
+      font-size: 32px;
+      animation: bounce 1s infinite alternate;
+    }
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .card {
+      width: 100px;
+      height: 120px;
+      background-color: #ffb347;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: scale(1.1);
+    }
+    .card.flipped {
+      background-color: #fff;
+      color: black;
+      border: 2px solid #ffb347;
+    }
+    .card img {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 5px;
+      display: none;
+    }
+    .card.flipped img {
+      display: block;
+    }
+    .card.flipped .card-text {
+      display: block;
+    }
+    .card .card-text {
+      display: none;
+    }
+    #attempts, #resetButton {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+    #resetButton {
+      background-color: #ff6347;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #resetButton:hover {
+      background-color: #e5533d;
+    }
+  </style>
+</head>
+<body>
+  <h1>Zagraj w Memory!</h1>
+  <div id="attempts">Próby: 0</div>
+  <button id="resetButton">Zacznij od nowa</button>
+  <div class="game-board" id="gameBoard"></div>
+
+  <script>
+    const pairs = [
+      { en: 'Vegetables', pl: 'Warzywa', img: '🥕' },
+      { en: 'Fish', pl: 'Ryba', img: '🐟' },
+      { en: 'Meat', pl: 'Mięso', img: '🥩' },
+      { en: 'Fruit', pl: 'Owoce', img: '🍎' },
+      { en: 'Plants', pl: 'Rośliny', img: '🌿' },
+      { en: 'Animals', pl: 'Zwierzęta', img: '🐶' }
+    ];
+
+    let cards = [];
+    let board, attemptsDisplay, firstCard, lockBoard, attempts;
+    const synth = window.speechSynthesis;
+
+    function setupGame() {
+      cards = [];
+      pairs.forEach(pair => {
+        cards.push({ text: pair.en, pairId: pair.en, img: pair.img, isEnglish: true });
+        cards.push({ text: pair.pl, pairId: pair.en, img: pair.img, isEnglish: false });
+      });
+      cards.sort(() => 0.5 - Math.random());
+
+      board.innerHTML = '';
+      attempts = 0;
+      firstCard = null;
+      lockBoard = false;
+      attemptsDisplay.textContent = `Próby: ${attempts}`;
+
+      cards.forEach((cardData, index) => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.pairId = cardData.pairId;
+        card.dataset.index = index;
+
+        const img = document.createElement('div');
+        img.textContent = cardData.img;
+        img.style.fontSize = '32px';
+        img.style.display = 'none';
+        card.appendChild(img);
+
+        const text = document.createElement('div');
+        text.classList.add('card-text');
+        text.textContent = cardData.text;
+        card.appendChild(text);
+
+        card.addEventListener('click', () => {
+          if (lockBoard || card.classList.contains('flipped')) return;
+
+          card.classList.add('flipped');
+          img.style.display = 'block';
+          text.style.display = 'block';
+
+          if (cardData.isEnglish) {
+            const utter = new SpeechSynthesisUtterance(cardData.text);
+            utter.lang = 'en-US';
+            synth.speak(utter);
+          }
+
+          if (!firstCard) {
+            firstCard = card;
+          } else {
+            attempts++;
+            attemptsDisplay.textContent = `Próby: ${attempts}`;
+
+            if (firstCard.dataset.pairId === card.dataset.pairId && firstCard.dataset.index !== card.dataset.index) {
+              firstCard = null;
+            } else {
+              lockBoard = true;
+              setTimeout(() => {
+                firstCard.classList.remove('flipped');
+                card.classList.remove('flipped');
+                firstCard.querySelector('div').style.display = 'none';
+                firstCard.querySelector('.card-text').style.display = 'none';
+                card.querySelector('div').style.display = 'none';
+                card.querySelector('.card-text').style.display = 'none';
+                firstCard = null;
+                lockBoard = false;
+              }, 1000);
+            }
+          }
+        });
+
+        board.appendChild(card);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      board = document.getElementById('gameBoard');
+      attemptsDisplay = document.getElementById('attempts');
+      document.getElementById('resetButton').addEventListener('click', setupGame);
+      setupGame();
+    });
+  </script>
+</body>
+</html>
